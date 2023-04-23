@@ -2,7 +2,7 @@
 
 ## A repository about my D3 js practice 🐨
 I always have issue with chart libraries. \
-They have limited api and limited customizablity (maybe the issue is me 🤨). \
+They have limited api and limited customizablity (Maybe it's my problem 🤨). \
 So i have started to learn d3 and these are my practices.
 
 ## Resources 👨‍🏫👩‍🏫
