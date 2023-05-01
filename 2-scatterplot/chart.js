@@ -1,3 +1,4 @@
+// import d3 from "d3";
 const xAccessor = (d) => d.dewPoint;
 const yAccessor = (d) => d.humidity;
 
@@ -41,7 +42,15 @@ const drawChart = async () => {
     .range([dimensions.boundsHeight, 0])
     .nice();
 
-  const dots = bounds.selectAll("circle").data(dataSet);
+  const dots = bounds
+    .selectAll("circle")
+    .data(dataSet)
+    .enter()
+    .append("circle")
+    .attr("cx", (d) => xScale(xAccessor(d)))
+    .attr("cy", (d) => yScale(yAccessor(d)))
+    .attr("r", 3)
+    .attr("fill", "gray");
 };
 
 await drawChart();
