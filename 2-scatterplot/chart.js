@@ -1,5 +1,3 @@
-import * as d3 from "d3";
-
 const xAccessor = (d) => d.dewPoint;
 const yAccessor = (d) => d.humidity;
 
@@ -34,7 +32,16 @@ const drawChart = async () => {
   const xScale = d3
     .scaleLinear()
     .domain(d3.extent(dataSet, xAccessor))
-    .range([0, dimensions.boundsWidth]);
+    .range([0, dimensions.boundsWidth])
+    .nice();
+
+  const yScale = d3
+    .scaleLinear()
+    .domain(d3.extent(dataSet, yAccessor))
+    .range([dimensions.boundsHeight, 0])
+    .nice();
+
+  const dots = bounds.selectAll("circle").data(dataSet);
 };
 
 await drawChart();
