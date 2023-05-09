@@ -33,7 +33,6 @@ const drawChart = async () => {
   const bounds = wrapper
     .append("g")
     .style("transform", `translate(${dimensions.margin.left}px , ${dimensions.margin.top}px)`);
-  console.log(bounds);
 
   const xScale = d3
     .scaleLinear()
