@@ -26,14 +26,14 @@ async function drawChart(metric) {
     .append("g")
     .style("transform", `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`);
 
-  const binsGenerator = d3.histogram().domain(xScale.domain()).value(metricAccessor).thresholds(12);
-  const bins = binsGenerator(dataset);
-
   const xScale = d3
     .scaleLinear()
     .domain(d3.extent(dataset, metricAccessor))
     .range([0, dimensions.boundedWidth])
     .nice();
+
+  const binsGenerator = d3.histogram().domain(xScale.domain()).value(metricAccessor).thresholds(12);
+  const bins = binsGenerator(dataset);
 
   const yScale = d3
     .scaleLinear()
