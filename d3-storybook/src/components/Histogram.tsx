@@ -94,6 +94,7 @@ const Histogram = () => {
                   >
                     <g>
                       <motion.rect
+                        key={`${i}-income-bar`}
                         initial={{
                           height: 0,
                           width: xScale.bandwidth(),
@@ -103,8 +104,9 @@ const Histogram = () => {
                         transition={{
                           delay: i * 0.2,
                           type: "spring",
-                          repeatDelay: 0,
+                          repeatDelay: 1,
                           width: {
+                            repeatDelay: 1,
                             delay: afterBarMountDelayTime,
                             duration: 0.4,
                           },
@@ -165,7 +167,7 @@ const Histogram = () => {
                 key={`x-axis-${i}`}
                 x={(xScale(d.month) || 0) + xScale.bandwidth() / 2}
                 fontSize={12}
-                y={bounds.height}
+                y={bounds.height - 10}
                 textAnchor="middle"
               >
                 {d.month}
