@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import useMeasure from "react-use-measure";
 import { colors, scatterplotFakeData } from "../constant/scatterplot";
 import * as d3 from "d3";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import "./style.css";
 
 type WeatherReport = { moonPhase: number; dewPoint: number; humidity: number; icon: string };
@@ -24,6 +24,9 @@ const margins = {
   right: 20,
 };
 
+// TODO get it dynamic
+const toolTipWidth = 160;
+
 const Scatterplot = () => {
   const [ref, bounds] = useMeasure();
   const [dataset, setDataset] = useState<WeatherReport[]>([]);
@@ -34,9 +37,24 @@ const Scatterplot = () => {
     setDataset(scatterplotFakeData);
   }, []);
 
-  const handleOnMouseOver = (d: WeatherReport) => {
+  const handleOnMouseOver = (e: SVGCircleElement, d: WeatherReport) => {
+    const circlePosition = +e.getAttribute("cx")!;
+
+    const isLeftOverFlow = () => !(circlePosition > toolTipWidth / 2 + 30);
+    const isRightOverFlow = () => !(bounds.width - circlePosition > toolTipWidth / 2);
+
+    const newPos = isLeftOverFlow()
+      ? circlePosition
+      : isRightOverFlow()
+      ? bounds.width - circlePosition - toolTipWidth / 2
+      : 0;
+
     setMoonPhase(d.moonPhase * 100);
     setShowPopOver(true);
+    d3.select("#tooltip")
+      .style("transform", `translate(-50% , -50px)`)
+      .style("top", `${yScale(yAccessor(d))}px`)
+      .style("left", `${xScale(xAccessor(d)) + newPos}px`);
   };
   const handleOnMouseOut = () => {
     setShowPopOver(false);
@@ -60,9 +78,7 @@ const Scatterplot = () => {
     .nice();
 
   return (
-    <div
-      className={`bg-white w-[${window.innerWidth}] gap-6 flex flex-col m-6 p-2 rounded-lg relative`}
-    >
+    <div className={`bg-white w-[${window.innerWidth}] gap-6 flex flex-col m-6 p-2 rounded-lg`}>
       <h1 className="font-semibold text-center">Scatter chart</h1>
       <div className="flex gap-8 justify-center">
         <div className="flex gap-4 items-center">
@@ -78,14 +94,14 @@ const Scatterplot = () => {
           <div className="w-6 h-6 bg-[#facc15] opacity-30 rounded-full" />
         </div>
       </div>
-      <div ref={ref} className="h-[500px] pb-5 flex gap-2">
-        <p className="-rotate-90 flex items-center origin-center">Humidity</p>
-        <div className="w-full h-full pb-5 flex flex-col gap-4">
+      <div className="flex w-full h-full gap-2">
+        <p className="flex items-center -rotate-90 origin-center">Humidity</p>
+        <div ref={ref} className="h-[500px] w-full pb-5  relative">
           <svg viewBox={`0 0 ${bounds.width} ${bounds.height}`} style={{ flexShrink: 0 }}>
             {/* y axis */}
             <g>
               {yScale.ticks(5).map((e) => (
-                <g>
+                <g key={`y-axis${e}`}>
                   <text fontSize={10} x={10} y={yScale(e) - 5}>
                     {e}
                   </text>
@@ -118,6 +134,7 @@ const Scatterplot = () => {
                 transition={{
                   delay: (i + 1) * 0.01,
                 }}
+                key={`detail-${i}`}
               >
                 <motion.circle
                   initial={{ r: 5 }}
@@ -133,7 +150,7 @@ const Scatterplot = () => {
                   opacity={0.2}
                 />
                 <circle
-                  onMouseOver={() => handleOnMouseOver(d)}
+                  onMouseOver={(e) => handleOnMouseOver(e.target as SVGCircleElement, d)}
                   onMouseOut={() => handleOnMouseOut()}
                   cx={xScale(xAccessor(d))}
                   cy={yScale(yAccessor(d))}
@@ -146,7 +163,7 @@ const Scatterplot = () => {
             {/* x axis */}
             <g>
               {xScale.ticks().map((e) => (
-                <g>
+                <g key={`x-axis${e}`}>
                   <text fontSize={10} x={xScale(e)} y={bounds.height}>
                     {e}
                   </text>
@@ -171,26 +188,21 @@ const Scatterplot = () => {
               />
             </g>
           </svg>
+          <motion.div
+            animate={{ opacity: showPopOver ? 1 : 0 }}
+            transition={{
+              delay: 0.2,
+              repeatDelay: 1,
+            }}
+            id={"tooltip"}
+            className={`absolute pointer-events-none bg-slate-200 p-2 rounded-md w-[${toolTipWidth}px] text-center`}
+          >
+            Moon Phase : {Math.round(moonPhase)}%
+          </motion.div>
         </div>
-        <AnimatePresence>
-          {showPopOver && (
-            <motion.div
-              id="moon"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="top-5 absolute overflow-hidden rounded-full"
-              style={{
-                transform: `translate(-${moonPhase}px, -${moonPhase}px) scale(.8)`,
-                width: 130,
-                height: 130,
-                boxShadow: `${moonPhase}px ${moonPhase}px 0 0 ${colors.yellow}70`,
-              }}
-            />
-          )}
-        </AnimatePresence>
       </div>
-      <p className="flex items-center origin-center justify-center -mt-6">Dew Point</p>
+
+      <p className="flex items-center origin-center justify-center mt">Dew Point</p>
     </div>
   );
 };
