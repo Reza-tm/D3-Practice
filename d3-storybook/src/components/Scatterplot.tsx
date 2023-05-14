@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import useMeasure from "react-use-measure";
 import { colors, scatterplotFakeData } from "../constant/scatterplot";
 import * as d3 from "d3";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import "./style.css";
 
 type WeatherReport = { moonPhase: number; dewPoint: number; humidity: number; icon: string };
@@ -25,41 +25,52 @@ const margins = {
 };
 
 // TODO get it dynamic
-const toolTipWidth = 160;
 
 const Scatterplot = () => {
   const [ref, bounds] = useMeasure();
   const [dataset, setDataset] = useState<WeatherReport[]>([]);
-  const [moonPhase, setMoonPhase] = useState(100);
-  const [showPopOver, setShowPopOver] = useState(false);
+  const [showHelper, setShowHelper] = useState(false);
 
   useEffect(() => {
     setDataset(scatterplotFakeData);
   }, []);
 
-  const handleOnMouseOver = (e: SVGCircleElement, d: WeatherReport) => {
-    const circlePosition = +e.getAttribute("cx")!;
+  // Tooltip utils
+  const tooltip = d3.select("#tooltip");
 
-    const isLeftOverFlow = () => !(circlePosition > toolTipWidth / 2 + 30);
-    const isRightOverFlow = () => !(bounds.width - circlePosition > toolTipWidth / 2);
+  const addTooltipText = (text: string) => tooltip.text(text);
+
+  const handleTooltipPosition = (d: WeatherReport) => {
+    const circlePosition = xScale(xAccessor(d));
+    const tooltipWidth = +tooltip.style("width").split("px")[0];
+
+    const isLeftOverFlow = () => !(circlePosition > tooltipWidth / 2 + 30);
+    const isRightOverFlow = () => !(bounds.width - circlePosition > tooltipWidth / 2);
 
     const newPos = isLeftOverFlow()
       ? circlePosition
       : isRightOverFlow()
-      ? bounds.width - circlePosition - toolTipWidth / 2
+      ? bounds.width - circlePosition - tooltipWidth / 2
       : 0;
 
-    setMoonPhase(d.moonPhase * 100);
-    setShowPopOver(true);
     d3.select("#tooltip")
       .style("transform", `translate(-50% , -50px)`)
       .style("top", `${yScale(yAccessor(d))}px`)
       .style("left", `${xScale(xAccessor(d)) + newPos}px`);
   };
-  const handleOnMouseOut = () => {
-    setShowPopOver(false);
+
+  const showTooltip = () => tooltip.style("opacity", 1);
+  const hideTooltip = () => tooltip.style("opacity", 0);
+
+  const handleOnMouseOut = () => hideTooltip();
+
+  const handleOnMouseOver = (d: WeatherReport) => {
+    handleTooltipPosition(d);
+    addTooltipText(`Moon Phase : ${Math.round(d.moonPhase * 100)}%`);
+    showTooltip();
   };
 
+  // scales
   const xScale = d3
     .scaleLinear()
     .domain(d3.extent(dataset, xAccessor) as [number, number])
@@ -77,22 +88,47 @@ const Scatterplot = () => {
     .range([1, 3])
     .nice();
 
+  // Delaunay
+  const delaunay = d3.Delaunay.from(
+    dataset,
+    (d) => xScale(xAccessor(d)),
+    (d) => yScale(yAccessor(d))
+  );
+
+  const voronoi = delaunay.voronoi();
+  voronoi.xmax = bounds.width - margins.left - margins.right;
+  voronoi.ymax = bounds.height - margins.top - margins.bottom;
+
+  // tailwind styles
+  const helperDotsStyle = `w-3 h-3 rounded-full`;
+  const helperContainerStyle = `flex gap-4 items-center`;
+
   return (
     <div className={`bg-white w-[${window.innerWidth}] gap-6 flex flex-col m-6 p-2 rounded-lg`}>
       <h1 className="font-semibold text-center">Scatter chart</h1>
-      <div className="flex gap-8 justify-center">
-        <div className="flex gap-4 items-center">
-          <p>Day</p>
-          <div className="w-3 h-3 bg-[#e879f9] rounded-full" />
+      <div className="flex justify-between px-8">
+        <div className="flex gap-8">
+          <div className={helperContainerStyle}>
+            <p>Day</p>
+            <div className={`${helperDotsStyle} bg-[#e879f9]`} />
+          </div>
+          <div className={helperContainerStyle}>
+            <p>Night</p>
+            <div className={`${helperDotsStyle} bg-[#5eead4] `} />
+          </div>
+          <div className={helperContainerStyle}>
+            <p>Moon phase</p>
+            <div className={`${helperDotsStyle} bg-[#facc15]`} />
+          </div>
         </div>
-        <div className="flex gap-4 items-center">
-          <p>Night</p>
-          <div className="w-3 h-3 bg-[#5eead4] rounded-full" />
-        </div>
-        <div className="flex gap-4 items-center">
-          <p>Moon phase</p>
-          <div className="w-6 h-6 bg-[#facc15] opacity-30 rounded-full" />
-        </div>
+        <motion.button
+          whileTap={{ scale: 0.9, y: 5 }}
+          onClick={() => setShowHelper(!showHelper)}
+          className="border-gray-400 border-2 px-2 py-1 rounded-md"
+          type="button"
+        >
+          {showHelper ? "hide helpers" : "show helpers"}
+        </motion.button>
       </div>
       <div className="flex w-full h-full gap-2">
         <p className="flex items-center -rotate-90 origin-center">Humidity</p>
@@ -140,9 +176,9 @@ const Scatterplot = () => {
                   initial={{ r: 5 }}
                   animate={{ r: 5 * moonPhaseScale(moonPhaseAccessor(d)) }}
                   transition={{
-                    repeat: Infinity,
+                    repeat: 6,
                     repeatType: "reverse",
-                    duration: 2,
+                    duration: 0.4,
                   }}
                   cx={xScale(xAccessor(d))}
                   cy={yScale(yAccessor(d))}
@@ -150,8 +186,8 @@ const Scatterplot = () => {
                   opacity={0.2}
                 />
                 <circle
-                  onMouseOver={(e) => handleOnMouseOver(e.target as SVGCircleElement, d)}
-                  onMouseOut={() => handleOnMouseOut()}
+                  onMouseEnter={() => !showHelper && handleOnMouseOver(d)}
+                  onMouseOut={() => !showHelper && handleOnMouseOut()}
                   cx={xScale(xAccessor(d))}
                   cy={yScale(yAccessor(d))}
                   r={5}
@@ -159,6 +195,28 @@ const Scatterplot = () => {
                 />
               </motion.g>
             ))}
+
+            {/* voronoi */}
+            <g>
+              {dataset.map((d, i) => (
+                <AnimatePresence>
+                  {showHelper && (
+                    <motion.path
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      exit={{ pathLength: 0 }}
+                      onMouseEnter={() => handleOnMouseOver(d)}
+                      onMouseOut={() => handleOnMouseOut()}
+                      d={voronoi.renderCell(i)}
+                      fill="transparent"
+                      strokeWidth={2}
+                      opacity={0.4}
+                      stroke={showHelper ? colors.gray : undefined}
+                    />
+                  )}
+                </AnimatePresence>
+              ))}
+            </g>
 
             {/* x axis */}
             <g>
@@ -188,21 +246,13 @@ const Scatterplot = () => {
               />
             </g>
           </svg>
-          <motion.div
-            animate={{ opacity: showPopOver ? 1 : 0 }}
-            transition={{
-              delay: 0.2,
-              repeatDelay: 1,
-            }}
+          <div
             id={"tooltip"}
-            className={`absolute pointer-events-none bg-slate-200 p-2 rounded-md w-[${toolTipWidth}px] text-center`}
-          >
-            Moon Phase : {Math.round(moonPhase)}%
-          </motion.div>
+            className="opacity-0 absolute transition-all whitespace-nowrap pointer-events-none bg-slate-200 p-2 rounded-md w-[160px] text-center"
+          />
         </div>
       </div>
-
-      <p className="flex items-center origin-center justify-center mt">Dew Point</p>
+      <p className="flex items-center origin-center justify-center mt-2 pb-4">Dew Point</p>
     </div>
   );
 };
