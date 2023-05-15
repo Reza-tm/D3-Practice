@@ -20,6 +20,7 @@ const margin = {
 
 const Histogram = () => {
   const [dataSet, setDataSet] = useState<DataSetType[]>([]);
+  const [shouldHasDelay, setShouldHasDelay] = useState(true);
   const [ref, bounds] = useMeasure();
   const chartWidth = bounds.width - margin.right;
 
@@ -88,13 +89,11 @@ const Histogram = () => {
               {dataSet.map((d, i) => {
                 return (
                   <g
-                    key={`${i}-detail`}
                     className="text-gray-400"
                     transform={`translate(${xScale(d.month) || 0 + margin.left})`}
                   >
                     <g>
                       <motion.rect
-                        key={`${i}-income-bar`}
                         initial={{
                           height: 0,
                           width: xScale.bandwidth(),
@@ -102,12 +101,10 @@ const Histogram = () => {
                           opacity: 0,
                         }}
                         transition={{
-                          delay: i * 0.2,
+                          delay: shouldHasDelay ? i * 0.2 : 0,
                           type: "spring",
-                          repeatDelay: 1,
                           width: {
-                            repeatDelay: 1,
-                            delay: afterBarMountDelayTime,
+                            delay: shouldHasDelay ? afterBarMountDelayTime : 0,
                             duration: 0.4,
                           },
                         }}
@@ -124,10 +121,10 @@ const Histogram = () => {
                         animate={{
                           opacity: 1,
                         }}
+                        onAnimationComplete={() => setShouldHasDelay(false)}
                         transition={{
                           type: "spring",
-                          delay: afterBarMountDelayTime + 0.5,
-                          repeatDelay: 0,
+                          delay: shouldHasDelay ? afterBarMountDelayTime + 0.5 : 0,
                           duration: 1,
                         }}
                         height={getBarHeight(d.expenses)}
