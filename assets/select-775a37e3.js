@@ -1,0 +1,2 @@
+import{S as l,r}from"./motion-4b54135b.js";function d(i,o){let n,t;if(o===void 0)for(const e of i)e!=null&&(n===void 0?e>=e&&(n=t=e):(n>e&&(n=e),t<e&&(t=e)));else{let e=-1;for(let f of i)(f=o(f,++e,i))!=null&&(n===void 0?f>=f&&(n=t=f):(n>f&&(n=f),t<f&&(t=f)))}return[n,t]}function m(i){return typeof i=="string"?new l([[document.querySelector(i)]],[document.documentElement]):new l([[i]],r)}export{d as e,m as s};
+//# sourceMappingURL=select-775a37e3.js.map
