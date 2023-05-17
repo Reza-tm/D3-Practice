@@ -2,6 +2,7 @@ import { MouseEvent, useEffect, useState } from "react";
 import * as d3 from "d3";
 import useMeasure from "react-use-measure";
 import { motion } from "framer-motion";
+import "./style.css";
 
 type Data = {
   date: string;

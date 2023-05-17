@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { histogramFakeData } from "../constant/histogram";
 import kFormatter from "../utils/KFormatter";
+import "./style.css";
 
 type DataSetType = {
   month: string;
